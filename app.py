@@ -1,83 +1,68 @@
-
-# ============================================
-# Agriculture Crop Price Prediction App
-# Author: Deeksha
-# ============================================
-
+app_code = '''
 import streamlit as st
 import pandas as pd
 import pickle
 
-# ─────────────────────────────────────────
-# Configure application settings
-# ─────────────────────────────────────────
 st.set_page_config(
-    page_title="Crop Price Predictor",
-    page_icon="🌾",
-    layout="centered"
+    page_title = "Crop Price Predictor",
+    page_icon  = "🌾",
+    layout     = "centered"
 )
 
-# ─────────────────────────────────────────
-# Application header
-# ─────────────────────────────────────────
+# Load Data
+df = pd.read_csv("agriculture_clean.csv")
+
+# Load Models
+model     = pickle.load(open("model.pkl","rb"))
+le_state  = pickle.load(open("le_state.pkl","rb"))
+le_comm   = pickle.load(open("le_commodity.pkl","rb"))
+le_dist   = pickle.load(open("le_district.pkl","rb"))
+le_market = pickle.load(open("le_market.pkl","rb"))
+le_label  = pickle.load(open("le_label.pkl","rb"))
+
 st.title("🌾 Crop Price Predictor")
 st.write("State aur Commodity choose karo")
 st.divider()
 
-# ─────────────────────────────────────────
-# Collect user inputs
-# ─────────────────────────────────────────
 state = st.selectbox(
     "State Chuno:",
-    options=sorted(df["state"].unique())
+    options = sorted(df["state"].unique())
 )
 
 commodity = st.selectbox(
     "Commodity Chuno:",
-    options=sorted(df["commodity"].unique())
+    options = sorted(df["commodity"].unique())
 )
 
-# ─────────────────────────────────────────
-# Generate prediction on button click
-# ─────────────────────────────────────────
 if st.button("🔍 Price Predict Karo"):
 
-    # Prepare encoded input features for the prediction model
     input_data = pd.DataFrame({
-        "state_encoded": [le_state.transform([state])[0]],
-        "commodity_encoded": [le_commodity.transform([commodity])[0]],
-        "district_encoded": [0],
-        "market_encoded": [0]
+        "state_encoded"    : [le_state.transform([state])[0]],
+        "commodity_encoded": [le_comm.transform([commodity])[0]],
+        "district_encoded" : [0],
+        "market_encoded"   : [0]
     })
 
-    # Predict the price category
-    prediction = model3.predict(input_data)
+    prediction = model.predict(input_data)
     result = le_label.inverse_transform(prediction)[0]
 
-    # Retrieve historical records for the selected inputs
     filtered = df[
         (df["state"] == state) &
         (df["commodity"] == commodity)
     ]
 
-    # Map predicted category to a price range and visual indicator
     if result == "CHEAP":
-        price_range = "₹0 - ₹1,000"
-        color = "green"
+        price_range = "Rs.0 - Rs.1,000"
         emoji = "🟢"
     elif result == "MEDIUM":
-        price_range = "₹1,000 - ₹4,000"
-        color = "orange"
+        price_range = "Rs.1,000 - Rs.4,000"
         emoji = "🟡"
     else:
-        price_range = "₹4,000+"
-        color = "red"
+        price_range = "Rs.4,000+"
         emoji = "🔴"
 
-    # Display prediction results
     st.divider()
     st.subheader("📊 Prediction Result")
-
     col1, col2 = st.columns(2)
 
     with col1:
@@ -86,12 +71,20 @@ if st.button("🔍 Price Predict Karo"):
 
     with col2:
         if len(filtered) > 0:
-            avg = int(filtered["modal_price"].mean())
+            avg   = int(filtered["modal_price"].mean())
             min_p = int(filtered["min_price"].min())
             max_p = int(filtered["max_price"].max())
-
-            st.metric("Average Price", f"₹{avg}")
-            st.metric("Min Price", f"₹{min_p}")
-            st.metric("Max Price", f"₹{max_p}")
+            st.metric("Average Price", f"Rs.{avg}")
+            st.metric("Min Price", f"Rs.{min_p}")
+            st.metric("Max Price", f"Rs.{max_p}")
         else:
             st.warning("Historical data nahi mila!")
+'''
+
+with open("app.py", "w") as f:
+    f.write(app_code)
+
+print("✅ app.py ready!")
+
+from google.colab import files
+files.download("app.py")
